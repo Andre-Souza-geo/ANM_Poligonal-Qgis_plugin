@@ -1,0 +1,18 @@
+[general]
+name=ANM Poligonal
+qgisMinimumVersion=3.22
+qgisMaximumVersion=4.99
+description=Gera polígonos em rumos verdadeiros (N-S / L-O) conforme normas ANM, com exportação SHP + TXT + CSV em EPSG:4674.
+about=Plugin para geração de polígonos ANM com segmentos estritamente N-S e L-O, ortogonalização de esboço, camadas de restrição, processamento em lote e exportação shapefile/TXT no formato da Agência Nacional de Mineração.
+version=1.0.0
+author=André Cunha de Souza
+email=andresouzageo@gmail.com
+category=Vector
+icon=icons/anm_icon.png
+tags=anm, mineração, polígono, rumos verdadeiros, poligonal, agência nacional de mineração
+homepage=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/
+tracker=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/issues
+repository=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/
+experimental=False
+deprecated=False
+changelog=1.0.0 - Lançamento oficial do complemento
