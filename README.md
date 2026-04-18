@@ -143,7 +143,25 @@ anm_poligonal/
 - Versão: 1.0.0
 - Compatibilidade: QGIS 3.22 – 3.44+
 - Licença: GPL v2
+- Autor: André Cunha de Souza
 
 ---
 
 *Plugin desenvolvido para atendimento às normas técnicas ANM de delimitação de polígonos de requerimentos minerários.*
+
+## License and Naming
+
+This plugin is licensed under the GNU General Public License v2 or later (GPL v2+).
+
+You are free to use, study, modify, and redistribute this software under the terms of the GPL.
+
+### Project Name and Attribution
+
+"ANM Poligonal" is a project developed and maintained by André Cunha de Souza.
+
+Redistributions of this software, including modified versions (forks), must:
+- Retain proper attribution to the original author;
+- Clearly indicate any modifications made;
+- Not use the name "ANM Poligonal", or any confusingly similar name, without explicit prior permission from the author.
+
+This requirement is intended to avoid user confusion and to protect the identity and integrity of the original project.
