@@ -2,17 +2,47 @@
 name=ANM Poligonal
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
-description=Gera polígonos em rumos verdadeiros (N-S / L-O) conforme normas ANM, com exportação SHP + TXT + CSV em EPSG:4674.
-about=Plugin para geração de polígonos ANM com segmentos estritamente N-S e L-O, ortogonalização de esboço, camadas de restrição, processamento em lote e exportação shapefile/TXT/CSV no formato da Agência Nacional de Mineração.
+description=For geologists and mining engineers in Brazil: QGIS plugin to design ANM-compliant mining polygons (true N–S / E–W orthogonal bearings), generate descriptive memorials, and export SHP, TXT and CSV in EPSG:4674 (SIRGAS 2000) for direct REPEM submission.
+about=EN: Designed for geologists and mining engineers working with Brazilian mineral rights, this QGIS plugin automates the polygon design workflow required for ANM mineral research applications.
+
+ Under ANM Resolution 119/2022 and the Código de Mineração (Decree-Law 227/1967), mineral research applications require a single polygon defined by sequential vertices in SIRGAS 2000 (EPSG:4674), with each segment strictly aligned to true North–South or East–West bearings — no diagonal segments allowed. The descriptive memorial (.CSV) generated from this geometry is the exclusive source used by ANM to locate the area in the REPEM system.
+
+ Key features:
+ - Strict orthogonal geometry enforcement (N–S / E–W true bearings, no crossing segments)
+ - Sketch orthogonalization: converts freehand or imported polygons into ANM-compliant geometry
+ - Restriction layer overlay: supports spatial intersection analysis with user-provided layers (e.g. indigenous territories, protected areas, encumbered zones)
+ - Batch processing for multiple polygons
+ - Export to Shapefile, TXT, and CSV in EPSG:4674
+
+ Replaces a time-consuming manual digitizing workflow with an automated, standardized process — letting professionals focus on the geology, not the geometry.
+
+ Questions or feedback? Connect with the author on LinkedIn: https://www.linkedin.com/in/-andre-souza/
+ Or send an e-mail to: andre.kavernista@gmail.com
+
+ PT-BR: Desenvolvido para geólogos e engenheiros de minas que atuam com direito minerário no Brasil, este plugin QGIS automatiza o fluxo de construção da poligonal exigida nos requerimentos de pesquisa mineral da ANM.
+
+ Conforme a Resolução ANM nº 119/2022 e o Código de Mineração (Decreto-Lei nº 227/1967), o requerimento de pesquisa exige uma única poligonal definida por vértices sequenciais em SIRGAS 2000 (EPSG:4674), com segmentos estritamente orientados a norte-sul ou leste-oeste verdadeiros — sem segmentos diagonais. O memorial descritivo (.CSV) gerado a partir dessa geometria é a fonte exclusiva utilizada pela ANM para locação da área no sistema REPEM.
+
+ Funcionalidades principais:
+ - Enforçamento rigoroso de geometria ortogonal (rumos N–S / L–O verdadeiros, sem cruzamento de segmentos)
+ - Ortogonalização de esboços: converte polígonos em esboço ou importados em geometria conforme ANM
+ - Sobreposição de camadas de restrição: suporta análise de interseção espacial com camadas fornecidas pelo usuário (ex.: terras indígenas, unidades de conservação, áreas oneradas)
+ - Processamento em lote de múltiplas poligonais
+ - Exportação para Shapefile, TXT e CSV em EPSG:4674
+
+ Substitui um fluxo de digitalização manual e demorado por um processo automatizado e padronizado — permitindo que o profissional concentre seu tempo na geologia, não na geometria.
+
+ Dúvidas ou sugestões? Conecte-se com o autor no LinkedIn: https://www.linkedin.com/in/-andre-souza/
+ Ou envie um e-mail para: andre.kavernista@gmail.com
 version=1.0.0
 author=André Cunha de Souza
 email=andresouzageo@gmail.com
 category=Vector
 icon=icons/anm_icon.png
-tags=anm, mineração, polígono, rumos verdadeiros, poligonal, agência nacional de mineração
-homepage=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/
+tags=ANM, mining, mineral rights, polygon, mining polygon, orthogonal bearings, Brazil, REPEM, SIRGAS 2000, EPSG:4674, mineração, direito minerário, poligonal, requerimento de pesquisa, pesquisa mineral, Agência Nacional de Mineração
+homepage=https://www.linkedin.com/in/-andre-souza/
 tracker=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/issues
 repository=https://github.com/Andre-Souza-geo/ANM_Poligonal-Qgis_plugin/
 experimental=False
 deprecated=False
-changelog=1.0.0 - Lançamento oficial do complemento
+changelog=1.0.0 - Official release. Orthogonal polygon generation (N–S / E–W), sketch orthogonalization, restriction layers, batch processing, export to SHP/TXT/CSV in EPSG:4674 (SIRGAS 2000), REPEM-compatible output.
