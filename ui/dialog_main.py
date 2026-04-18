@@ -601,66 +601,6 @@ class ANMPoligonalDialog(QDialog):
             C['warn_bg'], C['warn_bd']
         ))
 
-        # ── Tratamento de Arestas ──────────────────────────────────────────
-        grp_edge = QGroupBox('Tratamento de Arestas nas Restrições')
-        grp_edge.setStyleSheet(
-            f'QGroupBox {{ border:1.5px solid {C["border"]}; border-radius:5px; '
-            f'margin-top:10px; padding-top:6px; font-weight:bold; color:{C["primary"]}; }}'
-            f'QGroupBox::title {{ subcontrol-origin:margin; left:10px; padding:0 4px; }}'
-        )
-        edge_lay = QVBoxLayout(grp_edge)
-        edge_lay.setContentsMargins(10, 6, 10, 10)
-        edge_lay.setSpacing(2)
-
-        # Opção 1 — Manter sobreposição
-        self.rb_keep_overlap = QRadioButton('Manter sobreposição de arestas')
-        self.rb_keep_overlap.setStyleSheet(f'color:{C["text"]}; font-weight:normal;')
-
-        lbl_keep_desc = QLabel(
-            'Permite que a poligonal gerada sobreponha arestas com as Camadas de Restrição. '
-            'Essa condição, quando aplicada sobre outras poligonais ANM e áreas de bloqueio '
-            'minerário, será identificada pelo sistema REPEM como interferência de área e '
-            'demandará análise técnica no processo administrativo, resultando em maior tempo '
-            'do processo até a outorga do título minerário.'
-        )
-        lbl_keep_desc.setWordWrap(True)
-        lbl_keep_desc.setStyleSheet(
-            f'color:{C["text_muted"]}; font-size:10px; '
-            f'margin-left:20px; margin-top:1px; margin-bottom:8px;'
-        )
-
-        # Opção 2 — Evitar sobreposição (padrão)
-        self.rb_avoid_overlap = QRadioButton(
-            'Evitar sobreposição de arestas  (afastamento mín. de 0,001″)  [padrão]'
-        )
-        self.rb_avoid_overlap.setChecked(True)
-        self.rb_avoid_overlap.setStyleSheet(
-            f'color:{C["text"]}; font-weight:normal;'
-        )
-
-        lbl_avoid_desc = QLabel(
-            'Gera a poligonal com afastamento mínimo (0,001″) em relação às áreas de '
-            'restrição. Dá mais agilidade ao processo administrativo e não gera espaço '
-            'geográfico suficiente para poligonais de interstício.'
-        )
-        lbl_avoid_desc.setWordWrap(True)
-        lbl_avoid_desc.setStyleSheet(
-            f'color:{C["text_muted"]}; font-size:10px; '
-            f'margin-left:20px; margin-top:1px; margin-bottom:2px;'
-        )
-
-        self._edge_grp = QButtonGroup()
-        self._edge_grp.addButton(self.rb_keep_overlap,  0)
-        self._edge_grp.addButton(self.rb_avoid_overlap, 1)
-
-        edge_lay.addWidget(self.rb_keep_overlap)
-        edge_lay.addWidget(lbl_keep_desc)
-        edge_lay.addWidget(self.rb_avoid_overlap)
-        edge_lay.addWidget(lbl_avoid_desc)
-
-        outer_lay.addWidget(grp_edge)
-        # ──────────────────────────────────────────────────────────────────
-
         # Scroll para a lista de camadas
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -1130,18 +1070,8 @@ class ANMPoligonalDialog(QDialog):
 
         self.txt_restr_report.clear(); self._overlap_hl.clear()
         all_final: List[Dict] = []
-
-        avoid_overlap   = self.rb_avoid_overlap.isChecked()
-        edge_offset_val = 1e-3 if avoid_overlap else 0.0
-        edge_mode_str   = (
-            'Evitar sobreposição de arestas (afastamento 0,001″)'
-            if avoid_overlap else
-            'Manter sobreposição de arestas'
-        )
-
         report = ['RELATÓRIO — PIPELINE DE RESTRIÇÕES', '='*52,
                   f'Camadas de restrição: {", ".join(l.name() for l in restr_layers)}',
-                  f'Tratamento de arestas: {edge_mode_str}',
                   '']
 
         self.progress.setVisible(True); self.progress.setMaximum(len(self._results))
@@ -1153,12 +1083,11 @@ class ANMPoligonalDialog(QDialog):
 
             try:
                 clipped = clip_and_reortogonalize(
-                    anm_geom           = base_res['geom'],
-                    restriction_layers = restr_layers,
-                    n_steps            = self.spin_steps.value(),
-                    first_direction    = self._direction_str(),
-                    snap_vertices      = list(self._snap_vertices),
-                    edge_offset_arcsec = edge_offset_val,
+                    anm_geom          = base_res['geom'],
+                    restriction_layers= restr_layers,
+                    n_steps           = self.spin_steps.value(),
+                    first_direction   = self._direction_str(),
+                    snap_vertices     = list(self._snap_vertices),
                 )
             except Exception as e:
                 report.append(f'  ✗ Erro: {e}')
@@ -1252,9 +1181,15 @@ class ANMPoligonalDialog(QDialog):
                     self.chk_load.setChecked(_orig_load)
                 return
 
-        results = self._final_results
+        results = list(self._final_results)  # cópia — evita que _invalidate_cache() limpe a lista durante o loop
         n = len(results); batch = n > 1
         self.progress.setVisible(True); self.progress.setMaximum(n); erros = []
+
+        # Fase 1 — exporta arquivos. Nenhum addMapLayer aqui.
+        # Cada addMapLayer dispara layersAdded → _on_project_layers_changed →
+        # _invalidate_cache, que zeraria self._final_results durante o loop.
+        # Solução: coleta as camadas já criadas e as adiciona ao projeto só no final.
+        _layers_to_add: list = []  # lista de QgsVectorLayer válidos aguardando addMapLayer
 
         for i, res in enumerate(results):
             self.progress.setValue(i + 1)
@@ -1268,7 +1203,11 @@ class ANMPoligonalDialog(QDialog):
                     export_shapefile(res['geom'], p, {'obs': self.le_obs.text()})
                     self._log(f'✔ SHP: {os.path.basename(p)}')
                     if self.chk_load.isChecked():
-                        load_layer_to_canvas(p, f'ANM_{os.path.splitext(os.path.basename(p))[0]}')
+                        lyr = QgsVectorLayer(p,
+                                             f'ANM_{os.path.splitext(os.path.basename(p))[0]}',
+                                             'ogr')
+                        if lyr.isValid():
+                            _layers_to_add.append(lyr)
 
                 if txt:
                     base = txt
@@ -1290,7 +1229,7 @@ class ANMPoligonalDialog(QDialog):
                                f'&geomType=none')
                         txt_lyr = QgsVectorLayer(uri, f'TXT_{txt_name}', 'delimitedtext')
                         if txt_lyr.isValid():
-                            QgsProject.instance().addMapLayer(txt_lyr)
+                            _layers_to_add.append(txt_lyr)
                             self._log('  ℹ TXT carregado como tabela no projeto.')
                         else:
                             self._log(f'  ℹ TXT salvo em: {p}')
@@ -1314,7 +1253,7 @@ class ANMPoligonalDialog(QDialog):
                                f'&geomType=none')
                         csv_lyr = QgsVectorLayer(uri, f'CSV_{csv_name}', 'delimitedtext')
                         if csv_lyr.isValid():
-                            QgsProject.instance().addMapLayer(csv_lyr)
+                            _layers_to_add.append(csv_lyr)
                             self._log('  ℹ CSV REPEM carregado como tabela no projeto.')
                         else:
                             self._log(f'  ℹ CSV REPEM salvo em: {p}')
@@ -1322,7 +1261,14 @@ class ANMPoligonalDialog(QDialog):
             except Exception as e:
                 erros.append(str(e)); self._log(f'✗ {e}')
 
-        self.progress.setVisible(False); self._save_settings()
+        self.progress.setVisible(False)
+
+        # Fase 2 — adiciona todas as camadas ao projeto de uma só vez,
+        # após o loop de exportação ter concluído completamente.
+        for _lyr in _layers_to_add:
+            QgsProject.instance().addMapLayer(_lyr)
+
+        self._save_settings()
 
         if use_temp:
             self.chk_load.setChecked(_orig_load)
@@ -1450,8 +1396,7 @@ class ANMPoligonalDialog(QDialog):
         s.setValue('load',         self.chk_load.isChecked())
         s.setValue('header',       self.chk_header.isChecked())
         s.setValue('dir',          self.cb_direction.currentIndex())
-        s.setValue('rb_all',         self.rb_all.isChecked())
-        s.setValue('avoid_overlap',  self.rb_avoid_overlap.isChecked())
+        s.setValue('rb_all',       self.rb_all.isChecked())
         # Salva geometria da janela (posição + tamanho)
         s.setValue('window_geometry', self.saveGeometry())
 
@@ -1470,9 +1415,6 @@ class ANMPoligonalDialog(QDialog):
         self.cb_direction.setCurrentIndex(int(s.value('dir', 0)))
         self.rb_all.setChecked(s.value('rb_all', True, type=bool))
         self.rb_selected.setChecked(not self.rb_all.isChecked())
-        avoid = s.value('avoid_overlap', True, type=bool)
-        self.rb_avoid_overlap.setChecked(avoid)
-        self.rb_keep_overlap.setChecked(not avoid)
         # Restaura geometria da janela — validada logo em seguida no showEvent
         geom = s.value('window_geometry')
         if geom:

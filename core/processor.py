@@ -63,11 +63,6 @@ CRS_ANM = QgsCoordinateReferenceSystem('EPSG:4674')
 # Abaixo desse delta angular (em graus), a variação é tratada como zero.
 EPS_ORTHO = 1e-10
 
-# Afastamento mínimo para evitar coincidência de arestas com restrições.
-# 0,001 segundo de arco convertido em graus decimais (≈ 3,09 cm no paralelo central do Brasil).
-EDGE_OFFSET_ARCSEC_DEFAULT = 1e-3                     # 0,001 segundos de arco
-EDGE_OFFSET_DEG_DEFAULT    = EDGE_OFFSET_ARCSEC_DEFAULT / 3600.0  # ≈ 2,778e-7 graus
-
 
 # ---------------------------------------------------------------------------
 # Alias de tipo
@@ -770,16 +765,14 @@ def clip_and_reortogonalize(
     n_steps: int = 3,
     first_direction: str = 'auto',
     snap_vertices: Optional[List[Point]] = None,
-    edge_offset_arcsec: float = EDGE_OFFSET_ARCSEC_DEFAULT,
 ) -> List[dict]:
     """
     Aplica restrições espaciais ao polígono ANM em dois estágios:
 
     Estágio 1 — Recorte (difference):
       Faz a union de todos os polígonos das camadas de restrição
-      (reprojetados para EPSG:4674), aplica o afastamento de aresta opcional
-      e então executa difference no polígono ANM:
-        resultado = anm_geom.difference(union_restricoes_expandida)
+      (reprojetados para EPSG:4674) e aplica difference no polígono ANM:
+        resultado = anm_geom.difference(union_restricoes)
       MultiPolygon resultante tem cada componente tratado separadamente.
 
     Estágio 2 — Reortogonalização:
@@ -792,25 +785,17 @@ def clip_and_reortogonalize(
 
     Parâmetros
     ----------
-    anm_geom            : polígono ANM já processado (em EPSG:4674).
-    restriction_layers  : lista de QgsVectorLayer com as áreas de restrição.
-    n_steps             : dentes por segmento (repassado ao processador).
-    first_direction     : 'auto', 'H' ou 'V' (repassado ao processador).
-    snap_vertices       : pontos de snap opcionais (repassados ao processador).
-    edge_offset_arcsec  : afastamento mínimo em segundos de arco aplicado às
-                          geometrias de restrição antes do recorte.
-                          0.0 → sem afastamento (sobreposição permitida).
-                          1e-3 (padrão) → 0,001″ ≈ 2,78e-7° — evita coincidência
-                          de arestas no sistema REPEM/ANM.
+    anm_geom           : polígono ANM já processado (em EPSG:4674).
+    restriction_layers : lista de QgsVectorLayer com as áreas de restrição.
+    n_steps            : dentes por segmento (repassado ao processador).
+    first_direction    : 'auto', 'H' ou 'V' (repassado ao processador).
+    snap_vertices      : pontos de snap opcionais (repassados ao processador).
 
     Retorna lista de dicts ordenada por área DECRESCENTE:
       [{'geom': QgsGeometry, 'vertices': [...], 'area_ha': float,
         'ortho_errors': [...], 'suffix': ''|'_a'|'_b'|...}, ...]
     """
     ctx = QgsProject.instance().transformContext()
-
-    # Converte afastamento de segundos de arco para graus decimais (unidade do EPSG:4674)
-    offset_deg: float = edge_offset_arcsec / 3600.0 if edge_offset_arcsec > 0.0 else 0.0
 
     # --- Estágio 1: union de todas as geometrias de restrição ---
     union_restr: Optional[QgsGeometry] = None
@@ -824,13 +809,6 @@ def clip_and_reortogonalize(
                 g = g.makeValid()
             if g.isEmpty():
                 continue
-            # Aplica afastamento mínimo de aresta (buffer positivo em graus).
-            # Segmentos=4 por quadrante é suficiente — o resultado será
-            # reortogonalizado e a suavidade do buffer não importa.
-            if offset_deg > 0.0:
-                g_buf = g.buffer(offset_deg, 4)
-                if g_buf and not g_buf.isEmpty():
-                    g = g_buf
             union_restr = g if union_restr is None else union_restr.combine(g)
 
     if union_restr is None or union_restr.isEmpty():
